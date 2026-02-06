@@ -30,7 +30,6 @@
             0% { transform: translateY(100vh) rotate(0deg); opacity: 1; }
             100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
         }
-        /* Estilo das Letras */
         .letter-slot {
             border-bottom: 3px solid #db2777;
             width: 18px;
@@ -43,18 +42,7 @@
             text-transform: uppercase;
             text-align: center;
         }
-        /* ESPAÇO ENTRE PALAVRAS AUMENTADO */
-        .space-slot { 
-            width: 25px; 
-            display: inline-block; 
-        }
-        
-        .word-wrapper {
-            display: inline-flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px; /* Espaço entre blocos de palavras */
-        }
+        .space-slot { width: 25px; display: inline-block; }
     </style>
 </head>
 <body class="flex items-center justify-center p-4">
@@ -63,20 +51,42 @@
 
 <div id="app" class="w-full max-w-lg z-10">
     
-    <div v-if="!onHangman && !quizFinished" class="glass rounded-3xl p-8 shadow-2xl animate__animated animate__fadeIn">
+    <div v-if="gameState === 'start'" class="glass rounded-3xl p-8 shadow-2xl animate__animated animate__fadeIn text-center">
+        <div class="text-6xl mb-6">💌</div>
+        <h1 class="text-3xl font-bold text-pink-800 mb-6">Estás pronta?</h1>
+        <div class="bg-pink-50 rounded-2xl p-6 mb-8 text-left border border-pink-100">
+            <p class="text-pink-700 font-medium mb-4 italic">Lê com atenção:</p>
+            <ul class="space-y-4 text-pink-900 leading-relaxed">
+                <li class="flex items-start">
+                    <span class="mr-2">⚠️</span>
+                    <span>Assim que clicares em <b>INICIAR</b>, entras num modo de desafio total.</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="mr-2">🤫</span>
+                    <span>Eu <b>não te posso dizer nada nem ajudar</b> em nenhuma pergunta até chegares ao fim.</span>
+                </li>
+                <li class="flex items-start">
+                    <span class="mr-2">🎁</span>
+                    <span>O jogo e as regras só terminam quando encontrares uma localização.</span>
+                </li>
+            </ul>
+        </div>
+        <button @click="gameState = 'quiz'" class="w-full bg-pink-500 text-white py-4 rounded-2xl font-bold text-xl shadow-lg hover:bg-pink-600 active:scale-95 transition-all">
+            INICIAR DESAFIO ❤️
+        </button>
+    </div>
+
+    <div v-if="gameState === 'quiz'" class="glass rounded-3xl p-8 shadow-2xl animate__animated animate__fadeIn">
         <div class="text-center mb-6">
             <span class="text-4xl">💖</span>
         </div>
-        
         <div class="w-full bg-pink-100 rounded-full h-2 mb-6">
             <div class="bg-pink-500 h-2 rounded-full transition-all duration-500" 
                  :style="{ width: (currentStep / questions.length) * 100 + '%' }"></div>
         </div>
-
         <h2 class="text-2xl font-bold text-pink-800 mb-6 leading-tight text-center">
             {{ questions[currentStep].text }}
         </h2>
-
         <div class="grid grid-cols-1 gap-4">
             <button 
                 v-for="(option, index) in questions[currentStep].options" 
@@ -87,17 +97,15 @@
                 {{ option }}
             </button>
         </div>
-
         <p v-if="showError" class="mt-4 text-red-500 text-center font-medium animate__animated animate__shakeX">
             ❌ Ups! Tenta outra vez, eu sei que consegues... ❤️
         </p>
     </div>
 
-    <div v-if="onHangman && !quizFinished" class="glass rounded-3xl p-6 shadow-2xl animate__animated animate__fadeIn">
+    <div v-if="gameState === 'hangman'" class="glass rounded-3xl p-6 shadow-2xl animate__animated animate__fadeIn">
         <div class="text-center mb-4">
             <span class="text-sm font-bold text-pink-400 uppercase tracking-widest">Desafio Final</span>
             <h2 class="text-xl font-bold text-pink-800 mt-2">Adivinha a frase:</h2>
-            
             <div class="mt-4 flex justify-center items-center gap-2">
                 <span class="text-pink-600 font-bold">Erros:</span>
                 <span :class="errors >= 10 ? 'text-red-600 animate-pulse' : 'text-pink-500'" class="text-lg font-black">
@@ -105,7 +113,6 @@
                 </span>
             </div>
         </div>
-
         <div class="text-center my-8 flex flex-wrap justify-center items-center gap-y-6">
             <div v-for="(word, wIndex) in hangmanWord.split(' ')" :key="wIndex" class="flex items-center">
                 <span v-for="(char, cIndex) in word" :key="cIndex" class="letter-slot">
@@ -114,7 +121,6 @@
                 <div v-if="wIndex < hangmanWord.split(' ').length - 1" class="space-slot"></div>
             </div>
         </div>
-
         <div class="grid grid-cols-7 gap-1">
             <button 
                 v-for="letter in alphabet" 
@@ -129,7 +135,7 @@
         </div>
     </div>
 
-    <div v-if="quizFinished" class="glass rounded-3xl p-10 shadow-2xl text-center animate__animated animate__heartBeat">
+    <div v-if="gameState === 'finished'" class="glass rounded-3xl p-10 shadow-2xl text-center animate__animated animate__heartBeat">
         <div class="text-7xl mb-6 text-pink-500 animate__animated animate__pulse animate__infinite">🎁</div>
         <h2 class="text-3xl font-bold text-pink-800 mb-4">Encontraste!</h2>
         <p class="text-lg text-pink-600 mb-8 leading-relaxed">
@@ -143,14 +149,12 @@
 
 <script>
     const { createApp } = Vue
-
     createApp({
         data() {
             return {
+                gameState: 'start', // Estados: 'start', 'quiz', 'hangman', 'finished'
                 currentStep: 0,
                 showError: false,
-                onHangman: false,
-                quizFinished: false,
                 errors: 0,
                 alphabet: 'abcdefghijklmnopqrstuvwxyz'.split(''),
                 guessedLetters: [],
@@ -171,7 +175,7 @@
                     if (this.currentStep < this.questions.length - 1) {
                         this.currentStep++;
                     } else {
-                        this.onHangman = true;
+                        this.gameState = 'hangman';
                     }
                 } else {
                     this.showError = true;
@@ -191,7 +195,7 @@
                 const targetLetters = this.hangmanWord.toLowerCase().replace(/\s/g, '').split('');
                 const hasWon = targetLetters.every(l => this.guessedLetters.includes(l));
                 if (hasWon) {
-                    setTimeout(() => { this.quizFinished = true; }, 500);
+                    setTimeout(() => { this.gameState = 'finished'; }, 500);
                 }
             }
         }
