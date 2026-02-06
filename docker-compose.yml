@@ -1,0 +1,17 @@
+services:
+  quiz-app:
+    build: .
+    # Não precisamos expor portas para o seu PC, o túnel falará internamente
+    networks:
+      - quiz-net
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --url http://quiz-app:80
+    networks:
+      - quiz-net
+    restart: always
+
+networks:
+  quiz-net:
+    driver: bridge
